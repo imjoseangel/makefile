@@ -13,16 +13,6 @@ ARCHOPER = $(shell uname -m )
 
 help:  ## Display this help
 
-		## ----------------------------------------------------------------------
-		#
-		# Run in the following order:
-		# make env=<env> dir=bootstrap apply
-		# make env=<env> dir=network apply
-		# make env=<env> dir=<iam>
-		# make env=<env> dir=<component>
-		#
-		## ----------------------------------------------------------------------
-
 		@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m\033[0m\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 all: validate security lint
@@ -99,6 +89,6 @@ ifeq ($(mod), local)
 endif
 
 .PHONY: run
-apply: modules init ## Create Infrastructure - Run with 'make env=poc dir=network reg=eu-central-1 apply'
+apply: modules init ## Create Infrastructure - Run with 'make env=dev dir=network reg=eu-central-1 apply'
 		$(info Make: Run)
 		terraform -chdir=terraform/$(dir) apply -var-file="env/$(env).tfvars" -auto-approve
