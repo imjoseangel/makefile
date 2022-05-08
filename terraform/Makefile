@@ -55,14 +55,14 @@ init: check ## Initialize Terraform
 		$(info Make: Terraform init)
 ifeq ($(reg), eu-central-1)
 		terraform -chdir=terraform/$(dir) init -upgrade \
-		-backend-config="bucket=zih-zggl-terraform-$(env)-ec-s3" \
-		-backend-config="dynamodb_table=zih-zggl-terraform-$(env)-ec-dyn" \
+		-backend-config="bucket=terraform-$(env)-ec-s3" \
+		-backend-config="dynamodb_table=terraform-$(env)-ec-dyn" \
 		-backend-config="region=$(reg)" \
 		-plugin-dir="plugins"
 else ifeq ($(reg), eu-west-1)
 		terraform -chdir=terraform/$(dir) init -upgrade \
-		-backend-config="bucket=zih-zggl-terraform-$(env)-ew-s3" \
-		-backend-config="dynamodb_table=zih-zggl-terraform-$(env)-ew-dyn" \
+		-backend-config="bucket=terraform-$(env)-ew-s3" \
+		-backend-config="dynamodb_table=terraform-$(env)-ew-dyn" \
 		-backend-config="region=$(reg)" \
 		-plugin-dir="plugins"
 else
