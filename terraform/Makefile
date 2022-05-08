@@ -11,7 +11,7 @@ ARCHOPER = $(shell uname -m )
 
 .PHONY: help requirements validate security lint providers apply
 
-help:  ## Display this help
+help:  ##   Display this help
 
 		@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m\033[0m\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
@@ -23,25 +23,25 @@ requirements: ## Install Python requirements
 		pip install --upgrade -r requirements.txt
 
 .PHONY: validate
-validate: ## Validate Code
+validate: ##   Validate Code
 		$(info Make: Validate Format and Code)
 		terraform init -plugin-dir="plugins"
 		terraform fmt --check
 		terraform validate -no-color
 
 .PHONY: security
-security: ## Check Terraform Security
+security: ##   Check Terraform Security
 		$(info Make: Check Security with TFSec)
 		$$PWD/bin/tfsec --format JUnit > ./reports/tfsec-report.xml
 		$$PWD/bin/tfsec
 
 .PHONY: lint
-lint: ## Terraform Static Lint
+lint: ##   Terraform Static Lint
 		$(info Make: Static Lint Check)
 		pre-commit run --all-files
 
 .PHONY: init
-init: check ## Initialize Terraform
+init: check ##   Initialize Terraform
 		$(info Make: Terraform init)
 ifeq ($(reg), eu-central-1)
 		terraform -chdir=terraform/$(dir) init -upgrade \
@@ -61,27 +61,27 @@ else
 endif
 
 .PHONY: plugins
-plugins: modules ## Install plugins Locally
+plugins: modules ##   Install plugins Locally
 		$(info Make: Static Lint Check)
 		terraform -chdir=terraform/$(dir) init -input=false -backend=false -upgrade
 		mkdir -p terraform/$(dir)/plugins
 		terraform -chdir=terraform/$(dir) providers mirror plugins
 
 .PHONY: check
-check: ## Check Variables
+check: ##   Check Variables
 		$(info Make: Check Variables)
 		@[ "${env}" ] || ( echo "\033[36menv\033[0m is not set"; exit 1 )
 		@[ "${dir}" ] || ( echo "\033[36mdir\033[0m is not set"; exit 1 )
 		@[ "${reg}" ] || ( echo "\033[36mreg\033[0m is not set"; exit 1 )
 
 .PHONY: clean
-clean: check ## Clean Stuff
+clean: check ##   Clean Stuff
 		$(info Make: Clean Stuff)
 		rm -rf terraform/$(dir)/.terraform*
 		rm -rf terraform/$(dir)/main_override.tf
 
 .PHONY: modules
-modules: ## Define Module source
+modules: ##   Define Module source
 		$(info Make: Define modules)
 ifeq ($(mod), local)
 		@echo "Using local modules"
@@ -89,6 +89,6 @@ ifeq ($(mod), local)
 endif
 
 .PHONY: run
-apply: modules init ## Create Infrastructure - Run with 'make env=dev dir=network reg=eu-central-1 apply'
+apply: modules init ##   Create Infrastructure - Run with 'make env=dev dir=network reg=eu-central-1 apply'
 		$(info Make: Run)
 		terraform -chdir=terraform/$(dir) apply -var-file="env/$(env).tfvars" -auto-approve
