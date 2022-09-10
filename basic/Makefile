@@ -9,15 +9,16 @@ ARCH  = $(shell uname -m | sed 's/x86_64/amd64/')
 OSOPER   = $(shell uname -s | tr '[:upper:]' '[:lower:]' | sed 's/darwin/apple-darwin/' | sed 's/linux/linux-gnu/')
 ARCHOPER = $(shell uname -m )
 
-.PHONY: help requirements validate security lint providers apply
+.PHONY: help all list
 
 help:  ## Display this help
-
+		$(info Make: Display help)
+		$(info )
 		@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m\033[0m\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 all: list
 
-.PHONY: list
 list: ## Do a ls
-		$(info Make: ls current directory)
-		@ls
+		$(info Make: list current directory)
+		$(info )
+		@echo $(ARCHOPER)
