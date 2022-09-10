@@ -3,9 +3,9 @@
 
 .DEFAULT_GOAL:=help
 
-PATH  := $(PATH):$(PWD)/bin
-OS    = $(shell uname -s | tr '[:upper:]' '[:lower:]')
-ARCH  = $(shell uname -m | sed 's/x86_64/amd64/')
+PATH     := $(PATH):$(PWD)/bin
+OS       = $(shell uname -s | tr '[:upper:]' '[:lower:]')
+ARCH     = $(shell uname -m | sed 's/x86_64/amd64/')
 OSOPER   = $(shell uname -s | tr '[:upper:]' '[:lower:]' | sed 's/darwin/apple-darwin/' | sed 's/linux/linux-gnu/')
 ARCHOPER = $(shell uname -m )
 
