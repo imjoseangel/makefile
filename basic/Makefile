@@ -21,4 +21,4 @@ all: list
 list: ## Do a ls
 		$(info Make: list current directory)
 		$(info )
-		@echo $(ARCHOPER)
+		@echo $@
