@@ -19,4 +19,4 @@ all: hello
 hello: ## Hello World
 		$(info Make: $@)
 		$(info )
-		@echo "Hello World"
+		@echo "Hello, World"
