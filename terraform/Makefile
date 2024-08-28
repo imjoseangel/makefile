@@ -1,94 +1,62 @@
-# Current version
-# VERSION ?= 1.0.3
-
 .DEFAULT_GOAL:=help
 
-PATH  := $(PATH):$(PWD)/bin
-OS    = $(shell uname -s | tr '[:upper:]' '[:lower:]')
-ARCH  = $(shell uname -m | sed 's/x86_64/amd64/')
-OSOPER   = $(shell uname -s | tr '[:upper:]' '[:lower:]' | sed 's/darwin/apple-darwin/' | sed 's/linux/linux-gnu/')
-ARCHOPER = $(shell uname -m )
+PATH     := $(PATH):$(PWD)/bin
+OS       := $(shell uname -s | tr '[:upper:]' '[:lower:]' | sed 's/darwin/apple-darwin/' | sed 's/linux/linux-gnu/')
+ARCH     := $(shell uname -m)
 
-.PHONY: help requirements validate security lint providers apply
+.POSIX:
 
-help:  ##   Display this help
+.PHONY: run-all
+run-all: checkenv
+	$(info Make: Run All)
+	@for item in `ls -d core/??-* | sort -n`; do terraform -chdir="$$item" init -reconfigure -upgrade -backend-config=./../../envs/$(env)/backend.hcl ; terraform -chdir="$$item" apply -auto-approve -var-file=envs/$(env)/terraform.tfvars -var-file=./../../envs/$(env)/terraform.tfvars; done
 
-		@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m\033[0m\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+.PHONY: destroy-all
+destroy-all: checkenv
+	$(info Make: Destroy All)
+	@for item in `ls -d core/??-* | sort -nr`; do terraform -chdir="$$item" init -reconfigure -upgrade -backend-config=./../../envs/$(env)/backend.hcl ; terraform -chdir="$$item" destroy -auto-approve -var-file=envs/$(env)/terraform.tfvars -var-file=./../../envs/$(env)/terraform.tfvars; done
 
-all: validate security lint
-
-.PHONY: requirements
-requirements: ## Install Python requirements
-		$(info Make: Python requirements)
-		pip install --upgrade -r requirements.txt
-
-.PHONY: validate
-validate: ##   Validate Code
-		$(info Make: Validate Format and Code)
-		terraform init -plugin-dir="plugins"
-		terraform fmt --check
-		terraform validate -no-color
-
-.PHONY: security
-security: ##   Check Terraform Security
-		$(info Make: Check Security with TFSec)
-		$$PWD/bin/tfsec --format JUnit > ./reports/tfsec-report.xml
-		$$PWD/bin/tfsec
-
-.PHONY: lint
-lint: ##   Terraform Static Lint
-		$(info Make: Static Lint Check)
-		pre-commit run --all-files
+.PHONY: help
+help:  ## Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m\033[0m\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 .PHONY: init
-init: check ##   Initialize Terraform
-		$(info Make: Terraform init)
-ifeq ($(reg), eu-central-1)
-		terraform -chdir=terraform/$(dir) init -upgrade \
-		-backend-config="bucket=terraform-$(env)-ec-s3" \
-		-backend-config="dynamodb_table=terraform-$(env)-ec-dyn" \
-		-backend-config="region=$(reg)" \
-		-plugin-dir="plugins"
-else ifeq ($(reg), eu-west-1)
-		terraform -chdir=terraform/$(dir) init -upgrade \
-		-backend-config="bucket=terraform-$(env)-ew-s3" \
-		-backend-config="dynamodb_table=terraform-$(env)-ew-dyn" \
-		-backend-config="region=$(reg)" \
-		-plugin-dir="plugins"
-else
-		$(info No region set or region not supported)
-		$(info Supported regions are eu-central-1 and eu-west-1)
-endif
+init: checkenv checkitem ## Initialize Terraform
+	$(info Make: Init Item $(item))
+	@terraform -chdir=core/$(item) init -reconfigure -upgrade -backend-config=./../../envs/$(env)/backend.hcl
 
-.PHONY: plugins
-plugins: modules ##   Install plugins Locally
-		$(info Make: Static Lint Check)
-		terraform -chdir=terraform/$(dir) init -input=false -backend=false -upgrade
-		mkdir -p terraform/$(dir)/plugins
-		terraform -chdir=terraform/$(dir) providers mirror plugins
+.PHONY: validate
+validate: checkitem ## Validate Terraform
+	$(info Make: Validate Terraform Code and Format)
+	@terraform -chdir=core/$(item) validate -no-color
+	@terraform -chdir=core/$(item) fmt --check
 
-.PHONY: check
-check: ##   Check Variables
-		$(info Make: Check Variables)
-		@[ "${env}" ] || ( echo "\033[36menv\033[0m is not set"; exit 1 )
-		@[ "${dir}" ] || ( echo "\033[36mdir\033[0m is not set"; exit 1 )
-		@[ "${reg}" ] || ( echo "\033[36mreg\033[0m is not set"; exit 1 )
+.PHONY: plan
+plan: checkenv checkitem init ## Plan Terraform
+	$(info Make: Plan Item $(item))
+	@terraform -chdir=core/$(item) plan -var-file=envs/$(env)/terraform.tfvars -var-file=./../../envs/$(env)/terraform.tfvars
+
+.PHONY: apply
+apply: checkenv checkitem init ## Apply Terraform
+	$(info Make: Apply Item $(item))
+	@terraform -chdir=core/$(item) apply -var-file=envs/$(env)/terraform.tfvars -var-file=./../../envs/$(env)/terraform.tfvars
+
+.PHONY: destroy
+destroy: checkenv checkitem init ## Destroy Terraform
+	$(info Make: Destroy Item $(item))
+	@terraform -chdir=core/$(item) destroy -var-file=envs/$(env)/terraform.tfvars -var-file=./../../envs/$(env)/terraform.tfvars
 
 .PHONY: clean
-clean: check ##   Clean Stuff
-		$(info Make: Clean Stuff)
-		rm -rf terraform/$(dir)/.terraform*
-		rm -rf terraform/$(dir)/main_override.tf
+clean: ## Cleanup the project folders with git clean
+	$(info Make: Cleaning up things)
+	@git clean -dfx
 
-.PHONY: modules
-modules: ##   Define Module source
-		$(info Make: Define modules)
-ifeq ($(mod), local)
-		@echo "Using local modules"
-		cp terraform/$(dir)/override/*.tf terraform/$(dir)/
-endif
+.PHONY: checkenv
+checkenv:
+	$(info Make: Check env variable)
+	@[ "${env}" ] || ( echo "\033[36menv\033[0m is not set"; exit 1 )
 
-.PHONY: run
-apply: modules init ##   Create Infrastructure - Run with 'make env=dev dir=network reg=eu-central-1 apply'
-		$(info Make: Run)
-		terraform -chdir=terraform/$(dir) apply -var-file="env/$(env).tfvars" -auto-approve
+.PHONY: checkitem
+checkitem:
+	$(info Make: Check item variable)
+	@[ "${item}" ] || ( echo "\033[36mitem\033[0m is not set"; exit 1 )
